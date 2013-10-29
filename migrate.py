@@ -162,7 +162,7 @@ class Migrator():
 
         get_all_tickets = xmlrpclib.MultiCall(self.trac)
 
-        for ticket in self.trac.ticket.query("max=0"):
+        for ticket in self.trac.ticket.query("max=0&order=id"):
             get_all_tickets.ticket.get(ticket)
 
         # Take the memory hit so we can rewrite ticket references:
