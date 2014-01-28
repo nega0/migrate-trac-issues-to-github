@@ -8,3 +8,6 @@ This script migrates issues from Trac to Github:
 * Issue links (i.e. `#1`, `refs 1`, etc.) will be converted to use the corresponding Github issue number instead of the original Trac ticket ID
 
 Run migrate.py with --help for more information
+
+Requirements:
+* PyGithub: https://pypi.python.org/pypi/PyGithub
