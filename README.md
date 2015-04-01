@@ -12,12 +12,8 @@ This script migrates issues from Trac to GitHub:
 ## Requirements
 
  * Python 2.7
- * Trac with xmlrpc plugin enabled
- * PyGithub
-
-Requirements:
-* PyGithub: https://pypi.python.org/pypi/PyGithub
-
+ * Trac with the [XmlRpcPlugin](https://trac-hacks.org/wiki/XmlRpcPlugin)
+ * [PyGithub](https://pypi.python.org/pypi/PyGithub)
   ```
   pip install -r requirements.txt
   ```
