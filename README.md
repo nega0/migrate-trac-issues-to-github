@@ -36,7 +36,34 @@ Requirements:
 
 * You may use the --username-map option to specify a text file containing tab-separated lines with Trac username and equivalent GitHub username pairs. It is likely that you would not want to include usernames for people who are no longer working on your project as they may receive assignment notifications for old tickets. The GitHub API does not provide any way to suppress notifications.
 
-Run migrate.py with --help for more information
+Run migrate.py with `--help` for more information
+
+```
+usage: migrate.py [-h] --trac-url TRAC_URL --github-project GITHUB_PROJECT
+                  [--github-token GITHUB_TOKEN]
+                  [--github-username GITHUB_USERNAME]
+                  [--github-api-url GITHUB_API_URL]
+                  [--github-project GITHUB_PROJECT]
+                  [--username-map USERNAME_MAP]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --trac-username TRAC_USERNAME
+                        Trac username (default: caktux)
+  --trac-url TRAC_URL   Trac base URL (`USERNAME` and `PASSWORD` will be
+                        expanded)
+  --github-token GITHUB_TOKEN
+                        GitHub token (default: ...)
+  --github-username GITHUB_USERNAME
+                        GitHub username (default: caktux)
+  --github-api-url GITHUB_API_URL
+                        GitHub API URL (default: https://api.github.com)
+  --github-project GITHUB_PROJECT
+                        GitHub Project: e.g. username/project
+  --username-map USERNAME_MAP
+                        File containing tab-separated Trac:GitHub username
+                        mappings
+```
 
 ## License
 

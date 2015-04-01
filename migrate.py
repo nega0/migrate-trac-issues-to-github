@@ -1,49 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
-"""Migrate Trac tickets to GitHub Issues
-
-What
-====
-
-This script migrates issues from Trac to GitHub:
-
-* Component & Issue-Type are converted to labels
-* Comments to issues are copied over
-* Basic conversion of Wiki Syntax in comments and descriptions
-* All titles will be suffixed with `(Trac #<>)` for ease of searching
-* All created issues will have the full Trac attributes appended to the issue body in JSON format
-
-How
-===
-
-    ./migrate.py --trac-username=YOUR_TRAC_USERNAME --trac-url=https://trac.example.org --github-project=YOUR_USER/YOUR_PROJECT
-
-Details
--------
-
-* You will be prompted for the passwords needed to access Trac, and GitHub if needed. If your gitconfig has
-  a section with github.token, or github.user and github.password, those values will automatically be used.
-  It is recommended that you use a token (see https://github.com/settings/applications) instead of saving
-  a real password:
-
-  git config --local github.token TOKEN_VALUE
-
-* You may use the --username-map option to specify a text file containing tab-separated lines with
-  Trac username and equivalent GitHub username pairs. It is likely that you would not want to include
-  usernames for people who are no longer working on your project as they may receive assignment notifications
-  for old tickets. The GitHub API does not provide any way to suppress notifications.
-
-License
-=======
-
- License: http://www.wtfpl.net/
-
-Requirements
-============
-
- * Python 2.7
- * Trac with xmlrpc plugin enabled
- * PyGithub
+"""
+Migrate Trac tickets to GitHub Issues
 """
 from __future__ import absolute_import, unicode_literals
 
