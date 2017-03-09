@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
+from __future__ import print_function
+
 """Migrate Trac tickets to Github Issues
 
 What
@@ -90,7 +92,9 @@ def make_blockquote(text):
 class Migrator():
     def __init__(self, trac_url=None, github_username=None, github_password=None, github_project=None,
                  github_api_url=None, username_map=None):
-        self.trac = xmlrpclib.ServerProxy(urljoin(trac_url, "/login/rpc"))
+        trac_api_url = trac_url + "/login/rpc"
+        print("TRAC api url: %s" % trac_api_url, file=sys.stderr)
+        self.trac = xmlrpclib.ServerProxy(trac_api_url)
         self.trac_public_url = sanitize_url(trac_url)
 
         self.github = gh = Github(github_username, github_password, base_url=github_api_url)
@@ -141,7 +145,7 @@ class Migrator():
         self.migrate_tickets()
 
     def load_github(self):
-        print >>sys.stderr, "Loading information from Github…"
+        print("Loading information from Github…", file=sys.stderr)
 
         repo = self.github_repo
         self.gh_milestones = {i.title: i for i in chain(repo.get_milestones(),
@@ -154,11 +158,11 @@ class Migrator():
         if trac_username in self.username_map:
             return self.username_map[trac_username]
         else:
-            warn("Cannot map Trac username %s" % trac_username)
+            warn("Cannot map Trac username >{0}< to GitHub user. Will add username >{0}< as label.".format(trac_username))
             return GithubObject.NotSet
 
     def migrate_tickets(self):
-        print >>sys.stderr, "Loading information from Trac…"
+        print("Loading information from Trac…", file=sys.stderr)
 
         get_all_tickets = xmlrpclib.MultiCall(self.trac)
 
@@ -169,7 +173,7 @@ class Migrator():
         all_trac_tickets = list(get_all_tickets())
         self.trac_issue_map = trac_issue_map = {}
 
-        print >>sys.stderr, "Creating tickets…"
+        print ("Creating GitHub tickets…", file=sys.stderr)
         for trac_id, time_created, time_changed, attributes in all_trac_tickets:
             title = "%s (Trac #%d)" % (attributes['summary'], trac_id)
 
@@ -181,11 +185,16 @@ class Migrator():
 
             milestone = self.get_gh_milestone(attributes['milestone'])
 
+            assignee = self.get_github_username(attributes['owner'])
+
             labels = ['Migrated from Trac', 'Incomplete Migration']
+
+            # User does not exist in GitHub -> Add username as label
+            if (assignee is GithubObject.NotSet and (attributes['owner'] and attributes['owner'].strip())):
+                    labels.extend([attributes['owner']])
+
             labels.extend(filter(None, (attributes['type'], attributes['component'])))
             labels = map(self.get_gh_label, labels)
-
-            assignee = self.get_github_username(attributes['owner'])
 
             for i, j in self.gh_issues.items():
                 if i == title:
@@ -199,11 +208,11 @@ class Migrator():
                 gh_issue = self.github_repo.create_issue(title, assignee=assignee, body=body,
                                                          milestone=milestone, labels=labels)
                 self.gh_issues[title] = gh_issue
-                print >>sys.stderr, "\tCreated issue: %s (%s)" % (title, gh_issue.html_url)
+                print ("\tCreated issue: %s (%s)" % (title, gh_issue.html_url), file=sys.stderr)
 
             trac_issue_map[int(trac_id)] = gh_issue
 
-        print >>sys.stderr, "Migrating descriptions and comments…"
+        print("Migrating descriptions and comments…", file=sys.stderr)
 
         incomplete_label = self.get_gh_label('Incomplete Migration')
 
@@ -215,7 +224,7 @@ class Migrator():
 
             gh_issue.remove_from_labels(incomplete_label)
 
-            print >>sys.stderr, "\t%s (%s)" % (gh_issue.title, gh_issue.html_url)
+            print("\t%s (%s)" % (gh_issue.title, gh_issue.html_url),file=sys.stderr)
 
             gh_issue.edit(body="%s\n\n%s" % (self.fix_wiki_syntax(attributes['description']), gh_issue.body))
 
@@ -338,7 +347,7 @@ if __name__ == "__main__":
                      username_map=user_map)
         m.run()
     except Exception as e:
-        print >>sys.stderr, "Exception: %s" % e
+        print("Exception: %s" % e, file=sys.stderr)
 
         tb = sys.exc_info()[2]
 
