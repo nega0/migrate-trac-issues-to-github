@@ -226,6 +226,7 @@ def check_simple_output(*args, **kwargs):
 def get_github_credentials():
     github_username = getuser()
     github_password = None
+    github_token = None
 
     try:
         github_username = check_simple_output('git config --get github.user')
