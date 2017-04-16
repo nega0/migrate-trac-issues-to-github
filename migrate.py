@@ -49,7 +49,7 @@ def make_blockquote(text):
 
 
 class Migrator():
-    def __init__(self, trac_url=None, trac_username=None, trac_password=None,
+    def __init__(self, trac_url=None, trac_username=None, trac_password=None, trac_filter=None,
                  github_username=None, github_password=None, github_project=None, github_api_url=None,
                  username_map=None):
         trac_api_url = trac_url + "/login/rpc"
@@ -59,6 +59,7 @@ class Migrator():
 
         self.trac = xmlrpclib.ServerProxy(trac_api_url)
         self.trac_public_url = sanitize_url(trac_url)
+        self.trac_filter = trac_filter
 
         self.github = gh = Github(github_username, github_password, base_url=github_api_url)
         self.github_repo = self.github.get_repo(github_project)
@@ -129,7 +130,7 @@ class Migrator():
 
         get_all_tickets = xmlrpclib.MultiCall(self.trac)
 
-        for ticket in self.trac.ticket.query("max=0&order=id"):
+        for ticket in self.trac.ticket.query(self.trac_filter):
             get_all_tickets.ticket.get(ticket)
 
         # Take the memory hit so we can rewrite ticket references:
@@ -273,6 +274,11 @@ if __name__ == "__main__":
                         default=None,
                         help="Trac username (default: %(default)s)")
 
+    parser.add_argument('--trac-filter',
+                        action="store",
+                        default="max=0&order=id",
+                        help="Trac ticket filter (default: %(default)s)")
+
     parser.add_argument('--github-token',
                         action="store",
                         default=github_token,
@@ -326,6 +332,7 @@ if __name__ == "__main__":
         trac_url=args.trac_url,
         trac_username=trac_username,
         trac_password=trac_password,
+        trac_filter=args.trac_filter,
         github_username=github_username,
         github_password=github_password,
         github_api_url=args.github_api_url,
