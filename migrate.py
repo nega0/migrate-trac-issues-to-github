@@ -2,49 +2,8 @@
 # encoding: utf-8
 from __future__ import print_function
 
-"""Migrate Trac tickets to Github Issues
-
-What
-====
-
-This script migrates issues from Trac to Github:
-
-* Component & Issue-Type are converted to labels
-* Comments to issues are copied over
-* Basic conversion of Wiki Syntax in comments and descriptions
-* All titles will be suffixed with `(Trac #<>)` for ease of searching
-* All created issues will have the full Trac attributes appended to the issue body in JSON format
-
-How
-===
-
-    ./migrate.py --trac-url=https://USERNAME:PASSWORD@trac.example.org --github-project=YOUR_USER/YOUR_PROJECT
-
-Details
--------
-
-* You will be prompted for the passwords needed to access Github and Trac if needed. If your gitconfig has
-  a section with github.user or github.password, those values will automatically be used. It is recommended
-  that you use a token (see https://github.com/settings/applications) instead of saving a real password:
-
-  git config --local github.password TOKEN_VALUE
-
-* You may use the --username-map option to specify a text file containing tab-separated lines with
-  Trac username and equivalent Github username pairs. It is likely that you would not want to include
-  usernames for people who are no longer working on your project as they may receive assignment notifications
-  for old tickets. The Github API does not provide any way to suppress notifications.
-
-License
-=======
-
- License: http://www.wtfpl.net/
-
-Requirements
-============
-
- * Python 2.7
- * Trac with xmlrpc plugin enabled
- * PyGithub
+"""
+Migrate Trac tickets to GitHub Issues
 """
 from __future__ import absolute_import, unicode_literals
 
@@ -145,7 +104,7 @@ class Migrator():
         self.migrate_tickets()
 
     def load_github(self):
-        print("Loading information from Github…", file=sys.stderr)
+        print("Loading information from GitHub…", file=sys.stderr)
 
         repo = self.github_repo
         self.gh_milestones = {i.title: i for i in chain(repo.get_milestones(),
@@ -276,58 +235,77 @@ def get_github_credentials():
     if not github_password:
         try:
             github_password = check_simple_output('git config --get github.password')
+            if github_password.startswith("!"):
+                github_password = check_simple_output(github_password.lstrip('!'))
         except subprocess.CalledProcessError:
             pass
 
-        if github_password.startswith("!"):
-            github_password = check_simple_output(github_password.lstrip('!'))
+    try:
+        github_token = check_simple_output('git config --get github.token')
+    except subprocess.CalledProcessError:
+        pass
 
-    return github_username, github_password
+    return github_username, github_password, github_token
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(__doc__)
+    parser = argparse.ArgumentParser()
 
-    github_username, github_password = get_github_credentials()
-
-    parser.add_argument('--trac-username',
-                        action="store",
-                        default=getuser(),
-                        help="Trac username (default: %(default)s)")
+    github_username, github_password, github_token = get_github_credentials()
 
     parser.add_argument('--trac-url',
                         action="store",
-                        help="Trac base URL (`USERNAME` and `PASSWORD` will be expanded)")
+                        required=True,
+                        help="Trac base URL")
+
+    parser.add_argument('--github-project',
+                        action="store",
+                        required=True,
+                        help="GitHub Project: e.g. username/project")
+
+    parser.add_argument('--trac-username',
+                        action="store",
+                        default=None,
+                        help="Trac username (default: %(default)s)")
+
+    parser.add_argument('--github-token',
+                        action="store",
+                        default=github_token,
+                        help="GitHub token (default: %(default)s)")
 
     parser.add_argument('--github-username',
                         action="store",
                         default=github_username,
-                        help="Github username (default: %(default)s)")
+                        help="GitHub username (default: %(default)s)")
 
     parser.add_argument('--github-api-url',
                         action="store",
                         default="https://api.github.com",
-                        help="Github API URL (default: %(default)s)")
-
-    parser.add_argument('--github-project',
-                        action="store",
-                        help="Github Project: e.g. username/project")
+                        help="GitHub API URL (default: %(default)s)")
 
     parser.add_argument('--username-map',
                         type=argparse.FileType('r'),
-                        help="File containing tab-separated Trac:Github username mappings")
+                        help="File containing tab-separated Trac:GitHub username mappings")
 
     args = parser.parse_args()
 
+    if not args.trac_url:
+        parser.error("Trac URL must be specified")
     if not args.github_project:
-        parser.error("Github Project must be specified")
+        parser.error("GitHub Project must be specified")
 
+    if not args.trac_username:
+        trac_username = raw_input("Trac username: ")
     trac_password = getpass("Trac password: ")
 
-    trac_url = args.trac_url.replace("USERNAME", args.trac_username).replace("PASSWORD", trac_password)
+    trac_url = args.trac_url.replace("://", "://USERNAME:PASSWORD@")
+    trac_url = trac_url.replace("USERNAME", trac_username).replace("PASSWORD", trac_password)
 
-    if not github_password:
-        github_password = getpass("Github password: ")
+    if not github_password and not github_token:
+        github_password = getpass("GitHub password: ")
+
+    if github_token:
+        github_username = github_token
 
     try:
         import bpdb as pdb
@@ -341,16 +319,11 @@ if __name__ == "__main__":
     else:
         user_map = {}
 
-    try:
-        m = Migrator(trac_url=trac_url, github_username=args.github_username, github_password=github_password,
-                     github_api_url=args.github_api_url, github_project=args.github_project,
-                     username_map=user_map)
-        m.run()
-    except Exception as e:
-        print("Exception: %s" % e, file=sys.stderr)
-
-        tb = sys.exc_info()[2]
-
-        sys.last_traceback = tb
-        pdb.pm()
-        raise
+    m = Migrator(
+        trac_url=trac_url,
+        github_username=github_username,
+        github_password=github_password,
+        github_api_url=args.github_api_url,
+        github_project=args.github_project,
+        username_map=user_map)
+    m.run()

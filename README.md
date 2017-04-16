@@ -1,8 +1,8 @@
-# Migrate TRAC tickets to Github issues
+# Migrate Trac tickets to GitHub Issues
 
 This works with github.com and Github Enterprise
 
-This script migrates issues from Trac to Github:
+This script migrates issues from Trac to GitHub:
 
 * Component & Ticket-Type are converted to labels
 * Comments to tickets are copied over
@@ -12,18 +12,18 @@ This script migrates issues from Trac to Github:
 * Issue links (i.e. `#1`, `refs 1`, etc.) will be converted to use the corresponding Github issue number instead of the original Trac ticket ID
 * Users not in GH will be added as labels
 
-Run migrate.py with --help for more information
+## Requirements
 
-Requirements:
  * Python 2.7
-* PyGithub: https://pypi.python.org/pypi/PyGithub
+ * Trac with the [XmlRpcPlugin](https://trac-hacks.org/wiki/XmlRpcPlugin)
+ * [PyGithub](https://pypi.python.org/pypi/PyGithub)
+  ```
+  pip install -r requirements.txt
+  ```
+
+## How
 ```
-pip install PyGithub
-```
- * Currently, you must add the GH credentials to the git config:
-```
-git config --global github.username myusername
-git config --global github.password <your_github_token>
+./migrate.py --trac-url=https://trac.example.org --github-project=YOUR_USER/YOUR_PROJECT
 ```
 
 ## Example usage with Github Enterprise
@@ -32,3 +32,45 @@ git config --global github.password <your_github_token>
 ```
 
 Note: Currently, you must leave USERNAME:PASSWORD _as_is, as it is replaced with the real user/pass in the script (will change, soon)
+
+## Details
+
+* You will be prompted for the username and password needed to access Trac, and GitHub password if needed. If your gitconfig has a section with github.token, or github.user and github.password, those values will automatically be used. It is recommended that you use a token (see https://github.com/settings/applications) instead of saving a real password:
+```
+  git config --local github.token TOKEN_VALUE
+```
+
+* You may use the --username-map option to specify a text file containing tab-separated lines with Trac username and equivalent GitHub username pairs. It is likely that you would not want to include usernames for people who are no longer working on your project as they may receive assignment notifications for old tickets. The GitHub API does not provide any way to suppress notifications.
+
+Run migrate.py with `--help` for more information
+
+```
+usage: migrate.py [-h] --trac-url TRAC_URL --github-project GITHUB_PROJECT
+                  [--github-token GITHUB_TOKEN]
+                  [--github-username GITHUB_USERNAME]
+                  [--github-api-url GITHUB_API_URL]
+                  [--github-project GITHUB_PROJECT]
+                  [--username-map USERNAME_MAP]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --trac-username TRAC_USERNAME
+                        Trac username (default: caktux)
+  --trac-url TRAC_URL   Trac base URL (`USERNAME` and `PASSWORD` will be
+                        expanded)
+  --github-token GITHUB_TOKEN
+                        GitHub token (default: ...)
+  --github-username GITHUB_USERNAME
+                        GitHub username (default: caktux)
+  --github-api-url GITHUB_API_URL
+                        GitHub API URL (default: https://api.github.com)
+  --github-project GITHUB_PROJECT
+                        GitHub Project: e.g. username/project
+  --username-map USERNAME_MAP
+                        File containing tab-separated Trac:GitHub username
+                        mappings
+```
+
+## License
+
+ License: http://www.wtfpl.net/
