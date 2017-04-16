@@ -49,10 +49,14 @@ def make_blockquote(text):
 
 
 class Migrator():
-    def __init__(self, trac_url=None, github_username=None, github_password=None, github_project=None,
-                 github_api_url=None, username_map=None):
+    def __init__(self, trac_url=None, trac_username=None, trac_password=None,
+                 github_username=None, github_password=None, github_project=None, github_api_url=None,
+                 username_map=None):
         trac_api_url = trac_url + "/login/rpc"
         print("TRAC api url: %s" % trac_api_url, file=sys.stderr)
+        trac_api_url = trac_api_url.replace("://", "://USERNAME:PASSWORD@")
+        trac_api_url = trac_api_url.replace("USERNAME", trac_username).replace("PASSWORD", trac_password)
+
         self.trac = xmlrpclib.ServerProxy(trac_api_url)
         self.trac_public_url = sanitize_url(trac_url)
 
@@ -295,12 +299,10 @@ if __name__ == "__main__":
     if not args.github_project:
         parser.error("GitHub Project must be specified")
 
-    if not args.trac_username:
+    trac_username = args.trac_username
+    if not trac_username:
         trac_username = raw_input("Trac username: ")
     trac_password = getpass("Trac password: ")
-
-    trac_url = args.trac_url.replace("://", "://USERNAME:PASSWORD@")
-    trac_url = trac_url.replace("USERNAME", trac_username).replace("PASSWORD", trac_password)
 
     if not github_password and not github_token:
         github_password = getpass("GitHub password: ")
@@ -321,7 +323,9 @@ if __name__ == "__main__":
         user_map = {}
 
     m = Migrator(
-        trac_url=trac_url,
+        trac_url=args.trac_url,
+        trac_username=trac_username,
+        trac_password=trac_password,
         github_username=github_username,
         github_password=github_password,
         github_api_url=args.github_api_url,
