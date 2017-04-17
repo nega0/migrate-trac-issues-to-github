@@ -48,16 +48,58 @@ def make_blockquote(text):
     return re.sub(r'^', '> ', text, flags=re.MULTILINE)
 
 
+class HTTPSDigestTransport(xmlrpclib.SafeTransport):
+    """
+    Transport that uses urllib2 so that we can do Digest authentication.
+
+    Based upon code at http://bytes.com/topic/python/answers/509382-solution-xml-rpc-over-proxy
+    """
+
+    def __init__(self, username, pw, realm, verbose = None, use_datetime=0):
+        self.__username = username
+        self.__pw = pw
+        self.__realm = realm
+        self.verbose = verbose
+        self._use_datetime = use_datetime
+
+    def request(self, host, handler, request_body, verbose):
+        import urllib2
+
+        url = 'https://'+host+handler
+        if verbose or self.verbose:
+            print("ProxyTransport URL: [%s]" % url)
+
+        request = urllib2.Request(url)
+        request.add_data(request_body)
+        # Note: 'Host' and 'Content-Length' are added automatically
+        request.add_header("User-Agent", self.user_agent)
+        request.add_header("Content-Type", "text/xml") # Important
+
+        # setup digest authentication
+        authhandler = urllib2.HTTPDigestAuthHandler()
+        authhandler.add_password(self.__realm, url, self.__username, self.__pw)
+        opener = urllib2.build_opener(authhandler)
+
+        # proxy_handler = urllib2.ProxyHandler()
+        # opener = urllib2.build_opener(proxy_handler)
+        f = opener.open(request)
+        return(self.parse_response(f))
+
+
 class Migrator():
-    def __init__(self, trac_url=None, trac_username=None, trac_password=None, trac_filter=None,
+    def __init__(self, trac_url=None, trac_realm=None, trac_username=None, trac_password=None, trac_filter=None,
                  github_username=None, github_password=None, github_project=None, github_api_url=None,
                  username_map=None):
         trac_api_url = trac_url + "/login/rpc"
         print("TRAC api url: %s" % trac_api_url, file=sys.stderr)
-        trac_api_url = trac_api_url.replace("://", "://USERNAME:PASSWORD@")
-        trac_api_url = trac_api_url.replace("USERNAME", trac_username).replace("PASSWORD", trac_password)
 
-        self.trac = xmlrpclib.ServerProxy(trac_api_url)
+        if trac_realm:
+            digestTransport = HTTPSDigestTransport(trac_username, trac_password, trac_realm)
+            self.trac = xmlrpclib.ServerProxy(trac_api_url, transport=digestTransport)
+        else:
+            trac_api_url = trac_api_url.replace("://", "://USERNAME:PASSWORD@")
+            trac_api_url = trac_api_url.replace("USERNAME", trac_username).replace("PASSWORD", trac_password)
+            self.trac = xmlrpclib.ServerProxy(trac_api_url)
         self.trac_public_url = sanitize_url(trac_url)
         self.trac_filter = trac_filter
 
@@ -269,6 +311,11 @@ if __name__ == "__main__":
                         required=True,
                         help="GitHub Project: e.g. username/project")
 
+    parser.add_argument('--trac-realm',
+                        action="store",
+                        default=None,
+                        help="Trac realm for Digest auth (default: %(default)s)")
+
     parser.add_argument('--trac-username',
                         action="store",
                         default=None,
@@ -330,6 +377,7 @@ if __name__ == "__main__":
 
     m = Migrator(
         trac_url=args.trac_url,
+        trac_realm=args.trac_realm,
         trac_username=trac_username,
         trac_password=trac_password,
         trac_filter=args.trac_filter,
