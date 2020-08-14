@@ -1,24 +1,22 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # encoding: utf-8
-from __future__ import print_function
 
 """
 Migrate Trac tickets to GitHub Issues
 """
-from __future__ import absolute_import, unicode_literals
 
 from itertools import chain
 from datetime import datetime
 from getpass import getpass, getuser
 from time import mktime
-from urlparse import urljoin, urlsplit, urlunsplit
+from urllib.parse import urljoin, urlsplit, urlunsplit
 from warnings import warn
 import argparse
 import json
 import re
 import subprocess
 import sys
-import xmlrpclib
+import xmlrpc.client
 
 from github import Github, GithubObject
 
@@ -48,7 +46,7 @@ def make_blockquote(text):
     return re.sub(r'^', '> ', text, flags=re.MULTILINE)
 
 
-class HTTPSDigestTransport(xmlrpclib.SafeTransport):
+class HTTPSDigestTransport(xmlrpc.client.SafeTransport):
     """
     Transport that uses urllib2 so that we can do Digest authentication.
 
@@ -63,22 +61,22 @@ class HTTPSDigestTransport(xmlrpclib.SafeTransport):
         self._use_datetime = use_datetime
 
     def request(self, host, handler, request_body, verbose):
-        import urllib2
+        import urllib.request, urllib.error, urllib.parse
 
         url = 'https://'+host+handler
         if verbose or self.verbose:
             print("ProxyTransport URL: [%s]" % url)
 
-        request = urllib2.Request(url)
+        request = urllib.request.Request(url)
         request.add_data(request_body)
         # Note: 'Host' and 'Content-Length' are added automatically
         request.add_header("User-Agent", self.user_agent)
         request.add_header("Content-Type", "text/xml") # Important
 
         # setup digest authentication
-        authhandler = urllib2.HTTPDigestAuthHandler()
+        authhandler = urllib.request.HTTPDigestAuthHandler()
         authhandler.add_password(self.__realm, url, self.__username, self.__pw)
-        opener = urllib2.build_opener(authhandler)
+        opener = urllib.request.build_opener(authhandler)
 
         # proxy_handler = urllib2.ProxyHandler()
         # opener = urllib2.build_opener(proxy_handler)
@@ -95,18 +93,18 @@ class Migrator():
 
         if trac_realm:
             digestTransport = HTTPSDigestTransport(trac_username, trac_password, trac_realm)
-            self.trac = xmlrpclib.ServerProxy(trac_api_url, transport=digestTransport)
+            self.trac = xmlrpc.client.ServerProxy(trac_api_url, transport=digestTransport)
         else:
             trac_api_url = trac_api_url.replace("://", "://USERNAME:PASSWORD@")
             trac_api_url = trac_api_url.replace("USERNAME", trac_username).replace("PASSWORD", trac_password)
-            self.trac = xmlrpclib.ServerProxy(trac_api_url)
+            self.trac = xmlrpc.client.ServerProxy(trac_api_url)
         self.trac_public_url = sanitize_url(trac_url)
         self.trac_filter = trac_filter
 
         self.github = gh = Github(github_username, github_password, base_url=github_api_url)
         self.github_repo = self.github.get_repo(github_project)
 
-        self.username_map = {i: gh.get_user(j) for i, j in username_map.items()}
+        self.username_map = {i: gh.get_user(j) for i, j in list(username_map.items())}
 
     def convert_ticket_id(self, trac_id):
         trac_id = int(trac_id)
@@ -170,7 +168,7 @@ class Migrator():
     def migrate_tickets(self):
         print("Loading information from Trac…", file=sys.stderr)
 
-        get_all_tickets = xmlrpclib.MultiCall(self.trac)
+        get_all_tickets = xmlrpc.client.MultiCall(self.trac)
 
         for ticket in self.trac.ticket.query(self.trac_filter):
             get_all_tickets.ticket.get(ticket)
@@ -186,7 +184,7 @@ class Migrator():
             # Intentionally do not migrate description at this point so we can rewrite
             # ticket ID references after all tickets have been created in the second pass below:
             body = "Migrated from %s\n" % urljoin(self.trac_public_url, "/ticket/%d" % trac_id)
-            text_attributes = {k: convert_value_for_json(v) for k, v in attributes.items()}
+            text_attributes = {k: convert_value_for_json(v) for k, v in list(attributes.items())}
             body += "```json\n" + json.dumps(text_attributes, indent=4) + "\n```\n"
 
             milestone = self.get_gh_milestone(attributes['milestone'])
@@ -199,10 +197,10 @@ class Migrator():
             if (assignee is GithubObject.NotSet and (attributes['owner'] and attributes['owner'].strip())):
                     labels.extend([attributes['owner']])
 
-            labels.extend(filter(None, (attributes['type'], attributes['component'])))
-            labels = map(self.get_gh_label, labels)
+            labels.extend([_f for _f in (attributes['type'], attributes['component']) if _f])
+            labels = list(map(self.get_gh_label, labels))
 
-            for i, j in self.gh_issues.items():
+            for i, j in list(self.gh_issues.items()):
                 if i == title:
                     gh_issue = j
                     if (assignee is not GithubObject.NotSet and
@@ -230,7 +228,7 @@ class Migrator():
 
             gh_issue.remove_from_labels(incomplete_label)
 
-            print("\t%s (%s)" % (gh_issue.title, gh_issue.html_url),file=sys.stderr)
+            print("\t%s (%s)" % (gh_issue.title, gh_issue.html_url), file=sys.stderr)
 
             gh_issue.edit(body="%s\n\n%s" % (self.fix_wiki_syntax(attributes['description']), gh_issue.body))
 
@@ -354,7 +352,7 @@ if __name__ == "__main__":
 
     trac_username = args.trac_username
     if not trac_username:
-        trac_username = raw_input("Trac username: ")
+        trac_username = input("Trac username: ")
     trac_password = getpass("Trac password: ")
 
     if not github_password and not github_token:
@@ -369,7 +367,7 @@ if __name__ == "__main__":
         import pdb
 
     if args.username_map:
-        user_map = filter(None, (i.strip() for i in args.username_map.readlines()))
+        user_map = [_f for _f in (i.strip() for i in args.username_map.readlines()) if _f]
         user_map = [re.split("\s+", j, maxsplit=1) for j in user_map]
         user_map = dict(user_map)
     else:
