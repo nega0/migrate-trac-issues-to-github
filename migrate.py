@@ -8,7 +8,7 @@ Migrate Trac tickets to GitHub Issues
 from itertools import chain
 from datetime import datetime
 from getpass import getpass, getuser
-from time import mktime
+from time import mktime, sleep
 from urllib.parse import urljoin, urlsplit, urlunsplit
 from warnings import warn
 import argparse
@@ -214,6 +214,11 @@ class Migrator():
                 self.gh_issues[title] = gh_issue
                 print ("\tCreated issue: %s (%s)" % (title, gh_issue.html_url), file=sys.stderr)
 
+                sleep(10)
+                if not (trac_id % 150):
+                    print("Sleeping 300s before ticket #{}".format(trac_id))
+                    sleep(300)
+
             trac_issue_map[int(trac_id)] = gh_issue
 
         print("Migrating descriptions and comments…", file=sys.stderr)
@@ -225,6 +230,11 @@ class Migrator():
 
             if incomplete_label.url not in [i.url for i in gh_issue.labels]:
                 continue
+
+            sleep(10)
+            if not (trac_id % 150):
+                print("Sleeping 300s before ticket #{}".format(trac_id))
+                sleep(300)
 
             gh_issue.remove_from_labels(incomplete_label)
 
