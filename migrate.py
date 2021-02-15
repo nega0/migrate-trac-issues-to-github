@@ -199,7 +199,8 @@ class Migrator():
 
             # User does not exist in GitHub -> Add username as label
             if (assignee is GithubObject.NotSet and (attributes['owner'] and attributes['owner'].strip())):
-                    labels.extend([attributes['owner']])
+                #labels.extend([attributes['owner']])
+                pass
 
             labels.extend([_f for _f in (attributes['type'], attributes['component']) if _f])
             labels = list(map(self.get_gh_label, labels))
