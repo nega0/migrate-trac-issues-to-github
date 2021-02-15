@@ -166,7 +166,7 @@ class Migrator():
         if trac_username in self.username_map:
             return self.username_map[trac_username]
         else:
-            warn("Cannot map Trac username >{0}< to GitHub user. Will add username >{0}< as label.".format(trac_username))
+            #warn("Cannot map Trac username >{0}< to GitHub user. Will add username >{0}< as label.".format(trac_username))
             return GithubObject.NotSet
 
     def migrate_tickets(self):
