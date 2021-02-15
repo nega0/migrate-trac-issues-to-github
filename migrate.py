@@ -104,6 +104,7 @@ class Migrator():
         self.github = gh = Github(github_username, github_password, base_url=github_api_url)
         self.github_repo = self.github.get_repo(github_project)
 
+        print("Building trac<->github username map...")
         self.username_map = {i: gh.get_user(j) for i, j in list(username_map.items())}
 
     def convert_ticket_id(self, trac_id):
@@ -152,9 +153,12 @@ class Migrator():
         print("Loading information from GitHub…", file=sys.stderr)
 
         repo = self.github_repo
+        print("    ... milestones", file=sys.stderr)
         self.gh_milestones = {i.title: i for i in chain(repo.get_milestones(),
                                                         repo.get_milestones(state="closed"))}
+        print("    ... labels", file=sys.stderr)
         self.gh_labels = {i.name: i for i in repo.get_labels()}
+        print("    ... issues", file=sys.stderr)
         self.gh_issues = {i.title: i for i in chain(repo.get_issues(state="open"),
                                                     repo.get_issues(state="closed"))}
 
