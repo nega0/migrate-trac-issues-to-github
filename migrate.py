@@ -112,7 +112,7 @@ class Migrator():
         if trac_id in self.trac_issue_map:
             return "#%s" % self.trac_issue_map[trac_id].number
         else:
-            return urljoin(self.trac_public_url, '/ticket/%d' % trac_id)
+            return urljoin(self.trac_public_url, 'ticket/%d' % trac_id)
 
     def fix_wiki_syntax(self, markup):
         markup = re.sub(r'(?:refs #?|#)(\d+)', lambda i: self.convert_ticket_id(i.group(1)),
@@ -187,7 +187,7 @@ class Migrator():
 
             # Intentionally do not migrate description at this point so we can rewrite
             # ticket ID references after all tickets have been created in the second pass below:
-            body = "Migrated from %s\n" % urljoin(self.trac_public_url, "/ticket/%d" % trac_id)
+            body = "Migrated from %s\n" % urljoin(self.trac_public_url, "ticket/%d" % trac_id)
             text_attributes = {k: convert_value_for_json(v) for k, v in list(attributes.items())}
             body += "```json\n" + json.dumps(text_attributes, indent=4) + "\n```\n"
 
