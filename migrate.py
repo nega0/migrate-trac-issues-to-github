@@ -189,9 +189,34 @@ class Migrator():
 
             # Intentionally do not migrate description at this point so we can rewrite
             # ticket ID references after all tickets have been created in the second pass below:
-            body = "Migrated from %s\n" % urljoin(self.trac_public_url, "ticket/%d" % trac_id)
+
+            # build up some vars which will fill our fancy ticket "template" below
+            trac_ticket_url = urljoin(self.trac_public_url, "ticket/%d" % trac_id)
             text_attributes = {k: convert_value_for_json(v) for k, v in list(attributes.items())}
-            body += "```json\n" + json.dumps(text_attributes, indent=4) + "\n```\n"
+            trac_ticket_reporter = attributes['reporter'].strip()  # trac ticket reporter
+            trac_ticket_owner    = attributes['owner'].strip()     # trac ticket owner
+
+            if trac_ticket_reporter:
+                ownership = f", reported by {trac_ticket_owner}"
+            if not trac_ticket_reporter and trac_ticket_owner:
+                ownership = f", owned by {trac_ticket_owner}"
+            if trac_ticket_reporter and trac_ticket_owner:
+                ownership = f", reported by {trac_ticket_owner} and owned by {trac_ticket_owner}"
+
+            # this is our fancy ticket template. note it doesn't include details.
+            # they get prepended during the second pass below
+            body = f"""\
+            <details>
+            <summary><em>Migrated from <a href="{trac_ticket_url}">{trac_ticket_url}</a>{ownership}</em></summary>
+            <p>
+
+            ```json
+            {json.dumps(text_attributes, indent=4)}
+            ```
+
+            </p>
+            </details>
+            """
 
             milestone = self.get_gh_milestone(attributes['milestone'])
 
