@@ -340,7 +340,8 @@ def get_github_credentials():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    github_username, github_password, github_token = get_github_credentials()
+    #github_username, github_password, github_token = get_github_credentials()
+    github_username, github_password, github_token = (None, None, None)
 
     parser.add_argument('--trac-url',
                         action="store",
@@ -362,6 +363,11 @@ if __name__ == "__main__":
                         default=None,
                         help="Trac username (default: %(default)s)")
 
+    parser.add_argument('--trac-password',
+                        action="store",
+                        default=None,
+                        help="Trac password (default: %(default)s)")
+
     parser.add_argument('--trac-filter',
                         action="store",
                         default="max=0&order=id",
@@ -376,6 +382,11 @@ if __name__ == "__main__":
                         action="store",
                         default=github_username,
                         help="GitHub username (default: %(default)s)")
+
+    parser.add_argument('--github-password',
+                        action="store",
+                        default=github_password,
+                        help="GitHub password (default: %(default)s)")
 
     parser.add_argument('--github-api-url',
                         action="store",
@@ -398,6 +409,12 @@ if __name__ == "__main__":
         trac_username = input("Trac username: ")
     trac_password = getpass("Trac password: ")
 
+    github_token = args.github_token
+    github_username = args.github_username
+    github_password = args.github_password
+
+    if not github_username and not github_token:
+        github_username = input("Github username: ")
     if not github_password and not github_token:
         github_password = getpass("GitHub password: ")
 
