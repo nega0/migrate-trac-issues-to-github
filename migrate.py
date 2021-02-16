@@ -181,6 +181,8 @@ class Migrator():
         all_trac_tickets = list(get_all_tickets())
         self.trac_issue_map = trac_issue_map = {}
 
+        # this is the first pass across the tickets, creating the ticket,
+        # milestones, labels and assignees
         print ("Creating GitHub tickets…", file=sys.stderr)
         for trac_id, time_created, time_changed, attributes in all_trac_tickets:
             title = "%s (Trac #%d)" % (attributes['summary'], trac_id)
@@ -226,6 +228,7 @@ class Migrator():
 
             trac_issue_map[int(trac_id)] = gh_issue
 
+        # this is the second pass across the tickets, creating descriptions and comments
         print("Migrating descriptions and comments…", file=sys.stderr)
 
         incomplete_label = self.get_gh_label('Incomplete Migration')
